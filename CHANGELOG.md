@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-02
+
 ### Changed
 
 - The SDK is now generally available. Version 1.0.0 is the first stable release after months of
@@ -30,5 +32,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Event delivery with the JDK HTTP client. The SDK adds no HTTP or JSON library to your
   classpath: its only required dependency is `com.agentcat:api`, which has no dependencies.
 
-[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/agentcathq/agentcat-java-sdk/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/agentcathq/agentcat-java-sdk/releases/tag/v0.1.0

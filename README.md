@@ -33,7 +33,7 @@ AgentCat is an analytics platform for MCP server owners 🐱. It captures user i
 <dependency>
     <groupId>com.agentcat</groupId>
     <artifactId>agentcat-java-sdk</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 

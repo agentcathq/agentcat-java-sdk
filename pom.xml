@@ -6,7 +6,7 @@
 
     <groupId>com.agentcat</groupId>
     <artifactId>agentcat-java-sdk</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
 
     <name>AgentCat Java SDK</name>
     <description>AgentCat analytics for MCP servers built on the MCP Java SDK: tool-call events, user intent and session replay.</description>
