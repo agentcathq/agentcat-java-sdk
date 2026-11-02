@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- The SDK is now generally available. Version 1.0.0 is the first stable release after months of
+  beta use, and from this release the public API follows Semantic Versioning: a breaking change
+  needs a new major version.
+
 ## [0.1.0] - 2026-11-02
 
 ### Added
