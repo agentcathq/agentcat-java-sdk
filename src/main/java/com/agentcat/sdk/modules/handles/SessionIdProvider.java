@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 /**
  * KSUID-based session identifier utilities for AgentCat.
  *
- * <h3>Format</h3>
+ * <h2>Format</h2>
  * <pre>ses_{27 base-62 chars}</pre>
  * Total length: 31 characters.
  *

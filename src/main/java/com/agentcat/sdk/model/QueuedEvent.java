@@ -11,7 +11,7 @@ import java.util.LinkedHashMap;
  * and the hook closures configured by the user so each event is processed with
  * the options that were active at the time of the call.
  *
- * <h3>Pending futures</h3>
+ * <h2>Pending futures</h2>
  * Hooks are fired fire-and-forget at call time (concurrently with the tool handler)
  * and their results land in {@link PendingHooks}. The event queue resolves them in
  * Stage 0 before the event enters the redaction/truncation pipeline.

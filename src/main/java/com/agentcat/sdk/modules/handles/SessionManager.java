@@ -11,7 +11,7 @@ import java.util.Map;
  * Resolves AgentCat handle parameters ({@code session_id}, {@code agent_id}) from the raw
  * arguments of an incoming tool call.
  *
- * <h3>session_id resolution scenarios</h3>
+ * <h2>session_id resolution scenarios</h2>
  * <ol>
  *   <li>Absent or {@code "start"} (case-insensitive) → {@link SessionSource#MINTED}: fresh KSUID.</li>
  *   <li>Valid {@code ses_XXXXX} → {@link SessionSource#SUPPLIED}: echoed back as-is.</li>

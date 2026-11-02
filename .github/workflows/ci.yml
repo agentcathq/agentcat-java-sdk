@@ -1,15 +1,26 @@
-
 name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the older run of that pull request. Every other run (a push
+# to main, a manual run) is in the group of its own commit, so a run for a later commit never
+# cancels it: every commit on main keeps a finished run, which release.yml waits for.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
     name: Java ${{ matrix.java }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     strategy:
       fail-fast: false
@@ -18,10 +29,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up JDK
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
@@ -30,9 +43,33 @@ jobs:
       - name: Build and test
         run: mvn --batch-mode --no-transfer-progress verify
 
+  # The jars that release.yml publishes: sources, javadoc and the Central pom metadata. No signing
+  # and no upload here.
+  release-build:
+    name: Release build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Package the release jars
+        run: mvn --batch-mode --no-transfer-progress package -P release,mcp-2.0.1 -DskipTests -Dgpg.skip
+
   compat:
     name: MCP ${{ matrix.mcp-profile }} / Java ${{ matrix.java }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: test
 
     strategy:
@@ -45,10 +82,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up JDK
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}

@@ -30,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * Bounded, asynchronous event queue for AgentCat analytics events.
  *
- * <h3>Pipeline (per event)</h3>
+ * <h2>Pipeline (per event)</h2>
  * <ol>
  *   <li>Stage 0: Resolve pending async hook results (identity, session, tags, properties)
  *       — with a 5 s timeout; timed-out hooks are skipped.</li>

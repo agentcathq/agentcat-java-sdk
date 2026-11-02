@@ -14,7 +14,7 @@ import java.util.function.Function;
  * no hooks configured. Pass an instance to the three-argument {@code track()} overload
  * only when deviating from the defaults.
  *
- * <h3>Hook contract</h3>
+ * <h2>Hook contract</h2>
  * All hooks ({@link #getIdentify()}, {@link #getResolveSessionId()}, {@link #getEventTags()},
  * {@link #getEventProperties()}) are <em>fire-and-forget</em>: they are started
  * concurrently with the tool handler and never delay the MCP response. A hook
