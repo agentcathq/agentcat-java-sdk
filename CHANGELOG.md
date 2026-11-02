@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-02
+
 ### Added
 
 - `AgentCat.track(...)`: records each tool call of an MCP Java SDK server (`McpSyncServer`,
@@ -22,4 +24,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Event delivery with the JDK HTTP client. The SDK adds no HTTP or JSON library to your
   classpath: its only required dependency is `com.agentcat:api`, which has no dependencies.
 
-[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/commits/main
+[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/agentcathq/agentcat-java-sdk/releases/tag/v0.1.0
