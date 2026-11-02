@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * Injects AgentCat handle parameters into a tool's JSON Schema input definition.
  *
- * <h3>Parameters injected</h3>
+ * <h2>Parameters injected</h2>
  * <ul>
  *   <li>{@code session_id} — always, when tracing is enabled. Carries a pattern
  *       constraint so agents know the accepted format.</li>

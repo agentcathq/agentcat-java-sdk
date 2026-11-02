@@ -11,7 +11,7 @@ import java.util.IdentityHashMap;
  * Truncates event payload fields so every event stays within the AgentCat
  * ingest limits.
  *
- * <h3>Limits</h3>
+ * <h2>Limits</h2>
  * <ul>
  *   <li>Strings: truncated to {@value #MAX_STRING_LENGTH} characters.</li>
  *   <li>Object depth: values beyond {@value #MAX_DEPTH} levels become {@code "[Object]"}

@@ -15,7 +15,7 @@ import java.util.Map;
  * Mint-back: appends the resolved {@code session_id} to the tool result so the
  * agent can read it and carry it forward on the next call.
  *
- * <h3>Text block (content prepend)</h3>
+ * <h2>Text block (content prepend)</h2>
  * A human-readable block is inserted as the <em>first</em> content element —
  * placing it at the top guards against client-side truncation of long responses.
  * <ul>

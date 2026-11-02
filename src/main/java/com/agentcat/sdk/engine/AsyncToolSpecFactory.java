@@ -13,7 +13,7 @@ import java.util.function.BiFunction;
  * Creates {@link AsyncToolSpecification} instances with the handler correctly placed
  * in the {@code callHandler} slot across all MCP SDK versions (0.18.x, 1.x, 2.x).
  *
- * <h3>0.18.x dual-slot architecture</h3>
+ * <h2>0.18.x dual-slot architecture</h2>
  * SDK 0.18.x introduced two parallel slots on {@code AsyncToolSpecification}:
  * <ul>
  *   <li>{@code call} — {@code BiFunction<exchange, Map<String,Object>, Mono>} (Map-based)</li>

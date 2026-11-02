@@ -12,7 +12,7 @@ import static com.agentcat.sdk.logging.AgentCatLogger.writeToLog;
  * Detects the MCP Java SDK major version at runtime and provides the matching
  * {@link McpSdkBridge} singleton.
  *
- * <h3>Detection strategy</h3>
+ * <h2>Detection strategy</h2>
  * <p>The return type of {@code McpSchema.Tool.inputSchema()} differs between SDK majors:
  * <ul>
  *   <li><b>2.x</b> — returns {@code Map<String,Object>}</li>

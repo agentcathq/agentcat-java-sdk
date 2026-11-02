@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 /**
  * Sanitizes an event payload before it enters the truncation and send stages.
  *
- * <h3>What is removed</h3>
+ * <h2>What is removed</h2>
  * <ul>
  *   <li><b>Non-text content blocks</b> in {@code response.content}: {@code image},
  *       {@code audio}, binary {@code resource} (blob) are replaced with a short

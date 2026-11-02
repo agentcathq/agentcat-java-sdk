@@ -13,7 +13,7 @@ import java.util.Map;
  * <p>These tags are stamped on every analytics event and bypass the 50-entry customer
  * tag limit. They are always added last, overriding any customer tag with the same key.
  *
- * <h3>Tags produced</h3>
+ * <h2>Tags produced</h2>
  * <ul>
  *   <li>{@code agentcat_session_id_source} — how the session was obtained:
  *       {@code "minted"}, {@code "supplied"}, {@code "hook"}, or {@code "invalid"}.</li>
