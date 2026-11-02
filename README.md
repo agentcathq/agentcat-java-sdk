@@ -1,3 +1,6 @@
+<div align="center">
+  <img alt="AgentCat — see exactly how agents experience your product" src="docs/static/og-image.png" width="80%">
+</div>
 <h3 align="center">
     <a href="#getting-started">Getting Started</a>
     <span> · </span>
@@ -9,7 +12,7 @@
     <span> · </span>
     <a href="#free-for-open-source">Open Source</a>
     <span> · </span>
-    <a href="https://meet.agentcat.com/meet">Schedule a Demo</a>
+    <a href="https://book.agentcat.com/meet">Schedule a Demo</a>
 </h3>
 <p align="center">
   <a href="https://central.sonatype.com/artifact/com.agentcat/agentcat-java-sdk"><img src="https://img.shields.io/maven-central/v/com.agentcat/agentcat-java-sdk.svg" alt="Maven Central"></a>
@@ -38,13 +41,12 @@ To learn more about us, check us out [here](https://agentcat.com). For detailed 
 
 ## Why use AgentCat? 🤔
 
-AgentCat helps builders of MCP servers learn how to improve them by capturing agent goals and detecting when they get stuck.
+AgentCat helps builders of MCP servers, Claude Connectors, and ChatGPT Plugins learn how to improve them by capturing any agents goals and detecting when they get stuck.
 
 Use AgentCat for:
 
 - **Agent session replay** 🎬. Follow alongside your users and their agents to understand why they're using your MCP servers, what functionality you're missing, and what clients they're coming from.
 - **Trace debugging** 🔍. See where your users are getting stuck, track and find when LLMs get confused by your API, and debug sessions across all deployments of your MCP server.
-- **Existing platform support** 📊. Get logging and tracing out of the box for your existing observability platforms (OpenTelemetry, Datadog, Sentry) — eliminating the tedious work of implementing telemetry yourself.
 
 ## How it works
 
