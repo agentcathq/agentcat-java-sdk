@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.agentcat</groupId>
+    <artifactId>agentcat-java-sdk</artifactId>
+    <version>0.1.0</version>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- No direct Jackson dependency: production code uses no Jackson at all.
+             Jackson arrives transitively from the MCP SDK (any version) at runtime.
+             Tests that need Jackson 3.x (MCP 2.x scenarios) get it from the MCP SDK
+             test-profile dependency below. -->
+        <!-- AgentCat API models (OpenAPI-generated, models only, zero dependencies).
+             The SDK owns the HTTP transport (java.net.http), see HttpEventSender. -->
+        <dependency>
+            <groupId>com.agentcat</groupId>
+            <artifactId>api</artifactId>
+            <version>0.0.5</version>
+        </dependency>
+
+        <!-- Spring Boot auto-configuration (optional — only pulled in by Spring users) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>3.4.5</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Micronaut inject (optional — only pulled in by Micronaut users) -->
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-inject</artifactId>
+            <version>4.8.3</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Quarkus ArC (optional — only pulled in by Quarkus users).
+             Provides CDI API, @Startup, StartupEvent, and MicroProfile Config
+             (@ConfigProperty) needed by AgentCatQuarkusListener. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc</artifactId>
+            <version>3.8.6</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- CDI API — explicit optional dep so IDEs (IntelliJ) resolve @Vetoed
+             without relying on transitive resolution from quarkus-arc. -->
+        <dependency>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <version>4.0.1</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ── Integration test dependencies (test scope — never in final JAR) ── -->
+
+        <!-- Embedded HTTP server for McpTestContext (Jakarta EE 10 / Servlet 6.0) -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>12.1.13</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.ee10</groupId>
+            <artifactId>jetty-ee10-servlet</artifactId>
+            <version>12.1.13</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Mocking EventsApi in EventCapture -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.24.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Async assertions (EventCapture.flush) -->
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.2.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <!-- MCP Java SDK 2.x — default (latest stable) -->
+        <profile>
+            <id>mcp-2.0.1</id>
+            <activation><activeByDefault>true</activeByDefault></activation>
+            <dependencies>
+                <dependency>
+                    <groupId>io.modelcontextprotocol.sdk</groupId>
+                    <artifactId>mcp</artifactId>
+                    <version>2.0.1</version>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>mcp-2.0.0</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.modelcontextprotocol.sdk</groupId>
+                    <artifactId>mcp</artifactId>
+                    <version>2.0.0</version>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
+        <!-- MCP Java SDK 1.x — supported via McpSdkBridgeV1 (reflection) -->
+        <profile>
+            <id>mcp-1.1.4</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.modelcontextprotocol.sdk</groupId>
+                    <artifactId>mcp</artifactId>
+                    <version>1.1.4</version>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>mcp-1.0.2</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.modelcontextprotocol.sdk</groupId>
+                    <artifactId>mcp</artifactId>
+                    <version>1.0.2</version>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <!-- ── Compatibility test profiles ───────────────────────────────────
+             Each profile swaps the MCP dependency AND points Maven at a
+             dedicated test source root whose code uses that version's API.
+             Run with:  mvn test -Pmcp-1x   or   mvn test -Pmcp-018x
+        -->
+        <profile>
+            <id>mcp-1x</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                    <version>2.22</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.modelcontextprotocol.sdk</groupId>
+                    <artifactId>mcp</artifactId>
+                    <version>1.1.4</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <execution>
+                                <id>add-compat-test-sources</id>
+                                <phase>generate-test-sources</phase>
+                                <goals><goal>add-test-source</goal></goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/test/java-1x</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Only compile AgentCatCompat1xTest + AgentCatTestExtension (SPI) —
+                         all other test sources use MCP 2.x API -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.13.0</version>
+                        <configuration>
+                            <testIncludes>
+                                <testInclude>**/AgentCatCompat1xTest.java</testInclude>
+                                <testInclude>**/AgentCatTestExtension.java</testInclude>
+                            </testIncludes>
+                        </configuration>
+                    </plugin>
+                    <!-- Only run AgentCatCompat1xTest — stale 2.x class files may exist in target/ -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <configuration>
+                            <includes>
+                                <include>**/AgentCatCompat1xTest.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>mcp-018x</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.modelcontextprotocol.sdk</groupId>
+                    <artifactId>mcp</artifactId>
+                    <version>0.18.4</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <execution>
+                                <id>add-compat-test-sources</id>
+                                <phase>generate-test-sources</phase>
+                                <goals><goal>add-test-source</goal></goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/test/java-018x</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Only compile AgentCatCompat018xTest + AgentCatTestExtension (SPI) —
+                         all other test sources use MCP 2.x API -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.13.0</version>
+                        <configuration>
+                            <testIncludes>
+                                <testInclude>**/AgentCatCompat018xTest.java</testInclude>
+                                <testInclude>**/AgentCatTestExtension.java</testInclude>
+                            </testIncludes>
+                        </configuration>
+                    </plugin>
+                    <!-- Only run AgentCatCompat018xTest — stale 2.x class files may exist in target/ -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <configuration>
+                            <includes>
+                                <include>**/AgentCatCompat018xTest.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.micronaut</groupId>
+                            <artifactId>micronaut-inject-java</artifactId>
+                            <version>4.8.3</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.3.1</version>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
