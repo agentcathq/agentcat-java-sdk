@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Daily compat run: catches breakage from new MCP SDK releases when no commit lands.
+  schedule:
+    - cron: '0 2 * * *'
 
 permissions:
   contents: read
@@ -17,6 +20,38 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # On a pull request, sdk is true only when the PR changes SDK code (sources, tests, pom.xml, this
+  # workflow). The compat job runs only then; the other jobs run on every PR. A skipped job still
+  # satisfies a required check.
+  changes:
+    name: Detect SDK changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sdk: ${{ steps.diff.outputs.sdk }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Diff the PR against its base
+        id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          files="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          printf '%s\n' "$files"
+          if grep -qE '^(src/|pom\.xml$|\.github/workflows/ci\.yml$)' <<<"$files"; then
+            echo "sdk=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sdk=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Java ${{ matrix.java }}
     runs-on: ubuntu-latest
@@ -70,7 +105,12 @@ jobs:
     name: MCP ${{ matrix.mcp-profile }} / Java ${{ matrix.java }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: test
+    needs: [changes, test]
+    # changes is skipped outside pull requests, so !cancelled() keeps this job from being skipped
+    # with it; the test result check keeps the old rule that compat runs only after test passes.
+    if: >-
+      !cancelled() && needs.test.result == 'success' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.sdk == 'true')
 
     strategy:
       fail-fast: false
