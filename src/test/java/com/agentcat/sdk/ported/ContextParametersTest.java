@@ -54,6 +54,21 @@ class ContextParametersTest {
         return McpSchema.Tool.builder(name, Map.of("type", "object", "properties", Map.of())).build();
     }
 
+    private static PublishEventRequest eventForMessage(List<PublishEventRequest> events, String message) {
+        // EventQueue workers can publish calls in a different order from invocation.
+        return events.stream()
+                .filter(event -> "echo".equals(event.getResourceName()))
+                .filter(event -> {
+                    Map<?, ?> parameters = (Map<?, ?>) event.getParameters();
+                    Map<?, ?> request = (Map<?, ?>) parameters.get("request");
+                    Map<?, ?> params = (Map<?, ?>) request.get("params");
+                    Map<?, ?> arguments = (Map<?, ?>) params.get("arguments");
+                    return message.equals(arguments.get("msg"));
+                })
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No echo event for msg: " + message));
+    }
+
     private McpTestContext setupEchoServer(AgentCatOptions opts) throws Exception {
         var transport = HttpServletStreamableServerTransportProvider.builder().build();
         McpSyncServer server = McpServer.sync(transport)
@@ -73,6 +88,25 @@ class ContextParametersTest {
         McpTestContext ctx = McpTestContext.start(transport, server);
         ctx.client().listTools(); // prime schema registry
         return ctx;
+    }
+
+    @Test
+    void findsEchoEventsByMessageInEitherArrivalOrder() {
+        PublishEventRequest noContext = new PublishEventRequest()
+                .resourceName("echo")
+                .parameters(Map.of("request", Map.of("params", Map.of(
+                        "arguments", Map.of("msg", "no context")))));
+        PublishEventRequest withContext = new PublishEventRequest()
+                .resourceName("echo")
+                .parameters(Map.of("request", Map.of("params", Map.of(
+                        "arguments", Map.of("msg", "with context")))))
+                .userIntent("Listing todos to check current status");
+
+        for (List<PublishEventRequest> events : List.of(
+                List.of(noContext, withContext), List.of(withContext, noContext))) {
+            assertSame(noContext, eventForMessage(events, "no context"));
+            assertSame(withContext, eventForMessage(events, "with context"));
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -213,7 +247,10 @@ class ContextParametersTest {
             List<PublishEventRequest> events = capture.getEvents();
             assertTrue(events.size() >= 2, "both tool calls must produce events");
 
-            PublishEventRequest lastEvent = events.get(1);
+            PublishEventRequest firstEvent = eventForMessage(events, "first");
+            assertEquals("Creating initial data", firstEvent.getUserIntent(),
+                    "context from first call must be captured as userIntent");
+            PublishEventRequest lastEvent = eventForMessage(events, "second");
             assertEquals(completionContext, lastEvent.getUserIntent(),
                     "context from second call must be captured as userIntent");
         }
@@ -246,12 +283,12 @@ class ContextParametersTest {
             assertTrue(events.size() >= 2);
 
             // First call: no userIntent
-            PublishEventRequest noCtxEvent = events.get(0);
+            PublishEventRequest noCtxEvent = eventForMessage(events, "no context");
             assertNull(noCtxEvent.getUserIntent(),
                     "userIntent must be null when no context is provided");
 
             // Second call: userIntent set
-            PublishEventRequest withCtxEvent = events.get(1);
+            PublishEventRequest withCtxEvent = eventForMessage(events, "with context");
             assertEquals("Listing todos to check current status", withCtxEvent.getUserIntent(),
                     "userIntent must equal the context argument");
         }
