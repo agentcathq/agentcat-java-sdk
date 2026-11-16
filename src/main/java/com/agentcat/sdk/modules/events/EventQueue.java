@@ -13,6 +13,7 @@ import com.agentcat.sdk.modules.handles.SessionIdProvider;
 import com.agentcat.sdk.modules.pipeline.PayloadRedactor;
 import com.agentcat.sdk.modules.pipeline.Sanitizer;
 import com.agentcat.sdk.modules.pipeline.Truncator;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoSender;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -93,7 +94,14 @@ public final class EventQueue {
      * @param apiBaseUrl base URL of the AgentCat ingest API (e.g. {@code "http://localhost:8080"})
      */
     public void configure(String apiBaseUrl) {
-        this.sender = new HttpEventSender(apiBaseUrl);
+        HttpEventSender http = new HttpEventSender(apiBaseUrl);
+        this.sender = http;
+        this.serverInfoSender = http;
+    }
+
+    /** The sender of server info heartbeats: the same base URL and HTTP client as the events. */
+    public ServerInfoSender serverInfoSender() {
+        return serverInfoSender;
     }
 
     // ── State ────────────────────────────────────────────────────────────────
@@ -104,6 +112,7 @@ public final class EventQueue {
     private final Semaphore concurrency = new Semaphore(MAX_CONCURRENCY);
 
     private volatile EventSender sender;
+    private volatile ServerInfoSender serverInfoSender;
 
 
     private volatile boolean shutdown = false;
@@ -114,7 +123,9 @@ public final class EventQueue {
     // ── Constructor ──────────────────────────────────────────────────────────
 
     private EventQueue() {
-        this.sender = new HttpEventSender(AgentCatConstants.API_BASE_URL);
+        HttpEventSender http = new HttpEventSender(AgentCatConstants.API_BASE_URL);
+        this.sender = http;
+        this.serverInfoSender = http;
 
         dispatcherThread = new Thread(this::dispatch, "agentcat-dispatcher");
         dispatcherThread.setDaemon(true);

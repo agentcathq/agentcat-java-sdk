@@ -12,6 +12,7 @@ import com.agentcat.sdk.modules.events.EventPublisher;
 import com.agentcat.sdk.modules.handles.HandleTags;
 import com.agentcat.sdk.modules.handles.ParameterInjector;
 import com.agentcat.sdk.modules.handles.SessionManager;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoTarget;
 import com.agentcat.sdk.tools.GetMoreTools;
 import io.modelcontextprotocol.server.McpAsyncServerExchange;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -49,13 +50,22 @@ public class ToolCallWrapper {
     protected final String serverVersion;
     /** Runtime AgentCat SDK options (injection flags, hooks, etc.). */
     protected final AgentCatOptions opts;
+    /** The tracked server for the server info heartbeat; {@code null} when the wrapper has no server. */
+    protected final ServerInfoTarget serverInfo;
 
     protected ToolCallWrapper(String projectId, String serverName,
                                String serverVersion, AgentCatOptions opts) {
+        this(projectId, serverName, serverVersion, opts, null);
+    }
+
+    protected ToolCallWrapper(String projectId, String serverName,
+                               String serverVersion, AgentCatOptions opts,
+                               ServerInfoTarget serverInfo) {
         this.projectId     = projectId;
         this.serverName    = serverName;
         this.serverVersion = serverVersion;
         this.opts          = opts;
+        this.serverInfo    = serverInfo;
     }
 
     /** Returns the runtime options this wrapper was configured with. */
