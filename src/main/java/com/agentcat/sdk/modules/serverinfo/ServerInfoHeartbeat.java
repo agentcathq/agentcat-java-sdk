@@ -9,7 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 
 import static com.agentcat.sdk.logging.AgentCatLogger.writeToLog;
@@ -89,6 +91,21 @@ public final class ServerInfoHeartbeat {
         }
         String title = server.title();
         String instructions = server.instructions();
+
+        Function<String, CompletableFuture<String>> redact = target.opts.getRedactSensitiveInformation();
+        if (redact != null) {
+            ServerInfoRedaction.Redacted redacted;
+            try {
+                redacted = ServerInfoRedaction.apply(title, instructions, features, redact, deadline);
+            } catch (Throwable t) {
+                log("server info: skipped, the redaction function failed or passed its time limit ("
+                        + t.getClass().getName() + ")");
+                return;
+            }
+            title = redacted.title();
+            instructions = redacted.instructions();
+            features = redacted.features();
+        }
 
         if (System.nanoTime() - deadline > 0) {
             log("server info: skipped, the build took more than 30 s");
