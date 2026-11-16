@@ -47,13 +47,35 @@ public final class AgentCatLogger {
      * @param message the diagnostic message to append
      */
     public static void writeToLog(String message) {
-        String line = Instant.now() + " [AgentCat] " + message + System.lineSeparator();
+        String line = line(message);
         try {
-            Files.writeString(logFile, line, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            append(line);
         } catch (IOException e) {
             // File write failed — fall back to stderr. stdout is intentionally avoided
             // because stdio-based MCP transports use it for JSON-RPC framing.
             System.err.print(line);
         }
+    }
+
+    /**
+     * Appends a timestamped message to {@code agentcat.log}, and drops it when the file
+     * cannot be written. It never writes to stdout or stderr.
+     *
+     * @param message the diagnostic message to append
+     */
+    public static void writeToLogFileOnly(String message) {
+        try {
+            append(line(message));
+        } catch (IOException ignored) {
+            // The line is dropped: this path never writes to stdout or stderr.
+        }
+    }
+
+    private static String line(String message) {
+        return Instant.now() + " [AgentCat] " + message + System.lineSeparator();
+    }
+
+    private static void append(String line) throws IOException {
+        Files.writeString(logFile, line, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 }

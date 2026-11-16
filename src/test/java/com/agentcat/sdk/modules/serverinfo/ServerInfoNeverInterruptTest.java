@@ -2,6 +2,8 @@ package com.agentcat.sdk.modules.serverinfo;
 
 import com.agentcat.sdk.AgentCatOptions;
 import com.agentcat.sdk.AgentCatTestExtension;
+import com.agentcat.sdk.logging.AgentCatLogger;
+import com.agentcat.sdk.modules.events.EventQueue;
 import com.agentcat.sdk.modules.events.EventSendException;
 import com.agentcat.sdk.modules.serverinfo.ServerInfoFixture.Kind;
 import com.agentcat.sdk.modules.serverinfo.ServerInfoFixture.Tracked;
@@ -13,12 +15,16 @@ import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -182,5 +188,26 @@ class ServerInfoNeverInterruptTest extends HeartbeatTestSupport {
         assertEquals(1, threads.size());
         assertTrue(threads.get(0).isDaemon());
         assertEquals(ServerInfoHeartbeat.THREAD_NAME, threads.get(0).getName());
+    }
+
+    @Test
+    void v10_anUnwritableLogWritesNothingToStandardError() throws Exception {
+        EventQueue.getInstance().resetForTesting(10_000);
+        Path missing = Path.of(System.getProperty("java.io.tmpdir"), "agentcat-no-such-dir-" + UUID.randomUUID(), "log");
+        AgentCatLogger.setLogDir(missing.toString());
+        try {
+            ServerInfoHeartbeat.onToolCall(target(source(lists("tools", failing()))), "alpha");
+            awaitIdle();
+            ServerInfoHeartbeat.onToolCall(new ServerInfoTarget(ServerInfoFixture.PROJECT_ID, "second-server",
+                    "1.0.0", new AgentCatOptions(), source(lists(
+                            "tools", pages(List.of(item("alpha"))), "prompts", failing()))), "alpha");
+            awaitIdle();
+            assertEquals("", McpServerSource.readInstructions(new Object()));
+
+            assertEquals(1, recorder.requests().size());
+            assertFalse(Files.exists(missing));
+        } finally {
+            AgentCatLogger.setLogDir(System.getProperty("java.io.tmpdir"));
+        }
     }
 }

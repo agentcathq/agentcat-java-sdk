@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.agentcat.sdk.logging.AgentCatLogger.writeToLog;
+import static com.agentcat.sdk.logging.AgentCatLogger.writeToLogFileOnly;
 
 /** Builds the body of the heartbeat from what the server shows an agent. */
 final class ServerInfoBody {
@@ -35,7 +35,7 @@ final class ServerInfoBody {
                 features.put(key, TOOLS.equals(key) ? withOneGetMoreTools(items) : items);
             } catch (ListReader.ListFailedException e) {
                 if (TOOLS.equals(key)) throw e;
-                writeToLog("server info: the " + key + " list failed, sending without it: " + e.getMessage());
+                writeToLogFileOnly("server info: the " + key + " list failed, sending without it: " + e.getMessage());
             }
         }
         return features;

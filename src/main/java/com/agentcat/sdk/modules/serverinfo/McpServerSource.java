@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static com.agentcat.sdk.logging.AgentCatLogger.writeToLog;
+import static com.agentcat.sdk.logging.AgentCatLogger.writeToLogFileOnly;
 
 /**
  * Reads an MCP Java SDK server through its public list methods. The library's own list
@@ -96,7 +96,7 @@ final class McpServerSource<S> implements ServerInfoSource {
             Object value = ReflectionUtils.readField(server, "instructions");
             return value instanceof String text ? text : "";
         } catch (Throwable t) {
-            writeToLog("server info: no instructions field on " + server.getClass().getName()
+            writeToLogFileOnly("server info: no instructions field on " + server.getClass().getName()
                     + ", sending an empty string (" + t.getClass().getSimpleName() + ")");
             return "";
         }

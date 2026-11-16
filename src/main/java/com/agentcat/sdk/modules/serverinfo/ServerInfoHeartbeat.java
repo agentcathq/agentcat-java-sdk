@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 
-import static com.agentcat.sdk.logging.AgentCatLogger.writeToLog;
+import static com.agentcat.sdk.logging.AgentCatLogger.writeToLogFileOnly;
 
 /**
  * The server info heartbeat: about once an hour for each process, the SDK reads the server's
@@ -159,7 +159,7 @@ public final class ServerInfoHeartbeat {
 
     private static void log(String message) {
         try {
-            writeToLog(message);
+            writeToLogFileOnly(message);
         } catch (Throwable ignored) {
             // A failed log line must not end the attempt's thread with an uncaught error.
         }

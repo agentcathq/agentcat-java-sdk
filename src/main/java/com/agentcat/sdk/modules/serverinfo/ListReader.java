@@ -1,6 +1,7 @@
 package com.agentcat.sdk.modules.serverinfo;
 
 import com.agentcat.sdk.modules.pipeline.JsonTree;
+import io.modelcontextprotocol.json.McpJsonDefaults;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -55,9 +56,18 @@ final class ListReader {
         return page;
     }
 
+    /**
+     * Converts with the MCP library's own JSON mapper, so the item is what the library puts
+     * on the wire. The result holds only maps, lists, strings, numbers, booleans and nulls.
+     */
     @SuppressWarnings("unchecked")
     private static Map<String, Object> wireObject(Object item) throws ListFailedException {
-        Object tree = JsonTree.toTree(item);
+        Object tree;
+        try {
+            tree = JsonTree.toTree(McpJsonDefaults.getMapper().convertValue(item, Object.class));
+        } catch (Throwable t) {
+            throw new ListFailedException("an item could not be converted (" + t.getClass().getSimpleName() + ")");
+        }
         if (tree instanceof Map<?, ?> map) return (Map<String, Object>) map;
         throw new ListFailedException("an item is not a JSON object");
     }
