@@ -67,7 +67,11 @@ abstract class HeartbeatTestSupport {
     }
 
     static List<String> names(List<Map<String, Object>> items) {
-        return items.stream().map(item -> (String) item.get("name")).toList();
+        return values(items, "name");
+    }
+
+    static List<String> values(List<Map<String, Object>> items, String key) {
+        return items.stream().map(item -> (String) item.get(key)).toList();
     }
 
     // ── Fake servers ──────────────────────────────────────────────────────────

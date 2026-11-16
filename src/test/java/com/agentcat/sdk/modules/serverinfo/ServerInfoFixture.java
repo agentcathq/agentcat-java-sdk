@@ -168,7 +168,7 @@ final class ServerInfoFixture {
         return new StdioServerTransportProvider(new JacksonMcpJsonMapper(new JsonMapper()));
     }
 
-    private static McpStatelessServerTransport stateless() {
+    static McpStatelessServerTransport stateless() {
         return new McpStatelessServerTransport() {
             @Override
             public void setMcpHandler(McpStatelessServerHandler handler) {}

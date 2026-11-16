@@ -3,6 +3,8 @@ package com.agentcat.sdk.modules.serverinfo;
 import com.agentcat.api.model.PublishServerInfoRequest;
 import com.agentcat.sdk.modules.serverinfo.ServerInfoFixture.Kind;
 import com.agentcat.sdk.modules.serverinfo.ServerInfoFixture.Tracked;
+import io.modelcontextprotocol.server.McpServer;
+import io.modelcontextprotocol.server.McpStatelessServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,11 +56,38 @@ class ServerInfoBodyTest extends HeartbeatTestSupport {
         assertTrue(tools.get(1).containsKey("annotations"));
         assertEquals("Beta Title", tools.get(1).get("title"));
 
-        assertEquals(2, list(body, "resources").size());
+        assertEquals(List.of("file:///a.txt", "file:///b.txt"), values(list(body, "resources"), "uri"));
         assertEquals(1, list(body, "resourceTemplates").size());
         assertEquals("file:///{name}.txt", list(body, "resourceTemplates").get(0).get("uriTemplate"));
-        assertEquals(2, list(body, "prompts").size());
+        assertEquals(List.of("greet", "plain"), names(list(body, "prompts")));
         assertEquals(1, ((List<?>) list(body, "prompts").get(0).get("arguments")).size());
+    }
+
+    @Test
+    void v1_hashMapListsAreSortedByKeySoEveryJdkSendsTheSameBody() throws Exception {
+        List<String> names = new java.util.ArrayList<>();
+        for (int i = 0; i < 40; i++) names.add("p" + Integer.toString(i * 7919, 36));
+        var spec = McpServer.async(ServerInfoFixture.stateless())
+                .capabilities(McpSchema.ServerCapabilities.builder().resources(false, false).prompts(false).build());
+        for (String n : names) {
+            spec.resources(new McpStatelessServerFeatures.AsyncResourceSpecification(
+                    new McpSchema.Resource("file:///" + n + ".txt", n, null, null, null, null, null, null),
+                    (ctx, req) -> Mono.empty()));
+            spec.resourceTemplates(new McpStatelessServerFeatures.AsyncResourceTemplateSpecification(
+                    new McpSchema.ResourceTemplate("file:///" + n + "/{id}", n, null, null, null, null),
+                    (ctx, req) -> Mono.empty()));
+            spec.prompts(new McpStatelessServerFeatures.AsyncPromptSpecification(
+                    new McpSchema.Prompt(n, null, null), (ctx, req) -> Mono.empty()));
+        }
+        Map<String, ListPager> lists = McpServerSource.of(spec.build()).read().lists();
+        long deadline = System.nanoTime() + ListReader.LIST_LIMIT_NANOS;
+
+        List<String> sorted = names.stream().sorted().toList();
+        assertEquals(sorted, names(ListReader.readAll(lists.get("prompts"), deadline)));
+        assertEquals(sorted.stream().map(n -> "file:///" + n + ".txt").toList(),
+                values(ListReader.readAll(lists.get("resources"), deadline), "uri"));
+        assertEquals(sorted.stream().map(n -> "file:///" + n + "/{id}").toList(),
+                values(ListReader.readAll(lists.get("resourceTemplates"), deadline), "uriTemplate"));
     }
 
     @Test

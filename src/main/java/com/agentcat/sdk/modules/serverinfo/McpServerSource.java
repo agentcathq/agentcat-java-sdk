@@ -8,6 +8,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.lang.ref.WeakReference;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -18,6 +19,11 @@ import static com.agentcat.sdk.logging.AgentCatLogger.writeToLogFileOnly;
  * Reads an MCP Java SDK server through its public list methods. The library's own list
  * handlers return these same lists whole, with no cursor. The server has a handler for a
  * list exactly when it declares the matching capability.
+ *
+ * <p>The library keeps resources, resource templates and prompts in hash maps, and the
+ * iteration order of a hash map changes between JDK releases. The source sorts those three
+ * lists by their key (uri, uri template, name), so every JDK sends the same body. Tools keep
+ * the library's registration order.
  *
  * <p>The source holds the server weakly, so a tracked tool never keeps its server alive.
  */
@@ -74,10 +80,10 @@ final class McpServerSource<S> implements ServerInfoSource {
         if (caps != null) {
             if (caps.tools() != null) lists.put("tools", wholeList(s, tools));
             if (caps.resources() != null) {
-                lists.put("resources", wholeList(s, resources));
-                lists.put("resourceTemplates", wholeList(s, resourceTemplates));
+                lists.put("resources", sortedList(s, resources, McpServerSource::resourceKey));
+                lists.put("resourceTemplates", sortedList(s, resourceTemplates, McpServerSource::templateKey));
             }
-            if (caps.prompts() != null) lists.put("prompts", wholeList(s, prompts));
+            if (caps.prompts() != null) lists.put("prompts", sortedList(s, prompts, McpServerSource::promptKey));
         }
         return new ServerFeatures(title, readInstructions(s), lists);
     }
@@ -85,6 +91,24 @@ final class McpServerSource<S> implements ServerInfoSource {
     private ListPager wholeList(S s, Function<S, Flux<?>> list) {
         return cursor -> Mono.defer(() -> list.apply(s).collectList())
                 .map(items -> new ListPage(items, null));
+    }
+
+    private ListPager sortedList(S s, Function<S, Flux<?>> list, Function<Object, String> key) {
+        Comparator<Object> byKey = Comparator.comparing(key, Comparator.nullsFirst(Comparator.naturalOrder()));
+        return cursor -> Mono.defer(() -> list.apply(s).collectSortedList(byKey))
+                .map(items -> new ListPage(items, null));
+    }
+
+    private static String resourceKey(Object item) {
+        return item instanceof McpSchema.Resource r ? r.uri() : null;
+    }
+
+    private static String templateKey(Object item) {
+        return item instanceof McpSchema.ResourceTemplate t ? t.uriTemplate() : null;
+    }
+
+    private static String promptKey(Object item) {
+        return item instanceof McpSchema.Prompt p ? p.name() : null;
     }
 
     /**
