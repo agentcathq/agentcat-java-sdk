@@ -28,6 +28,7 @@ public final class ServerInfoHeartbeat {
 
     static final long BUILD_LIMIT_NANOS = Duration.ofSeconds(30).toNanos();
     static final String THREAD_NAME = "agentcat-server-info";
+    private static final int HTTP_TOO_LARGE = 413;
 
     private static final LongSupplier SYSTEM_CLOCK_MS = () -> System.nanoTime() / 1_000_000L;
 
@@ -119,18 +120,35 @@ public final class ServerInfoHeartbeat {
         ServerInfoSender sender = EventQueue.getInstance().serverInfoSender();
         PublishServerInfoRequest request = ServerInfoBody.request(target.projectId, target.serverName,
                 target.serverVersion, title, instructions, features);
-        int status;
+        Integer status = post(sender, request);
+        if (status == null || done(status, request, features)) return;
+        if (status != HTTP_TOO_LARGE) {
+            log("server info: the API answered HTTP " + status + ", attempt ended");
+            return;
+        }
+
+        Map<String, Object> slim = ServerInfoBody.withoutSchemas(features);
+        request = ServerInfoBody.request(target.projectId, target.serverName,
+                target.serverVersion, title, instructions, slim);
+        status = post(sender, request);
+        if (status == null || done(status, request, slim)) return;
+        log("server info: the API answered HTTP " + status + " to the body without schemas, attempt ended");
+    }
+
+    /** Sends once. Returns the status, or {@code null} when no answer arrived. */
+    private static Integer post(ServerInfoSender sender, PublishServerInfoRequest request) {
         try {
-            status = sender.sendServerInfo(request);
+            return sender.sendServerInfo(request);
         } catch (EventSendException e) {
             log("server info: no answer from the API, attempt ended: " + e.getMessage());
-            return;
+            return null;
         }
-        if (status >= 200 && status <= 299) {
-            logSent(request, features);
-            return;
-        }
-        log("server info: the API answered HTTP " + status + ", attempt ended");
+    }
+
+    private static boolean done(int status, PublishServerInfoRequest request, Map<String, Object> features) {
+        if (status < 200 || status > 299) return false;
+        logSent(request, features);
+        return true;
     }
 
     private static void logSent(PublishServerInfoRequest request, Map<String, Object> features) {
