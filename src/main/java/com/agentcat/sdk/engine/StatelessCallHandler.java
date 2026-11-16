@@ -2,7 +2,6 @@ package com.agentcat.sdk.engine;
 
 import com.agentcat.sdk.AgentCatOptions;
 import com.agentcat.sdk.modules.handles.MintBackHandler;
-import com.agentcat.sdk.modules.serverinfo.ServerInfoHeartbeat;
 import com.agentcat.sdk.modules.serverinfo.ServerInfoTarget;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.AsyncToolSpecification;
@@ -97,7 +96,7 @@ class StatelessCallHandler
 
     @Override
     public Mono<CallToolResult> apply(McpTransportContext ctx, CallToolRequest request) {
-        ServerInfoHeartbeat.onToolCall(serverInfo, toolName);
+        ToolCallWrapper.checkServerInfo(serverInfo, toolName);
         ToolCallWrapper.PreparedCall call;
         try {
             call = ToolCallWrapper.prepare(request, ctx, toolName, serverName, serverVersion, opts, registry, declaredSessionParams);

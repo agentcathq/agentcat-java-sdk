@@ -12,6 +12,7 @@ import com.agentcat.sdk.modules.events.EventPublisher;
 import com.agentcat.sdk.modules.handles.HandleTags;
 import com.agentcat.sdk.modules.handles.ParameterInjector;
 import com.agentcat.sdk.modules.handles.SessionManager;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoHeartbeat;
 import com.agentcat.sdk.modules.serverinfo.ServerInfoTarget;
 import com.agentcat.sdk.tools.GetMoreTools;
 import io.modelcontextprotocol.server.McpAsyncServerExchange;
@@ -26,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 /**
@@ -66,6 +68,26 @@ public class ToolCallWrapper {
         this.serverVersion = serverVersion;
         this.opts          = opts;
         this.serverInfo    = serverInfo;
+    }
+
+    /** Replaces the server info check in tests; {@code null} runs the heartbeat check. */
+    static volatile BiConsumer<ServerInfoTarget, String> serverInfoCheckForTesting;
+
+    /**
+     * Runs the server info heartbeat check of a tool call. No {@link Throwable} of the
+     * heartbeat reaches the tool call, also not one thrown while its classes load.
+     */
+    static void checkServerInfo(ServerInfoTarget target, String toolName) {
+        try {
+            BiConsumer<ServerInfoTarget, String> replacement = serverInfoCheckForTesting;
+            if (replacement != null) {
+                replacement.accept(target, toolName);
+            } else {
+                ServerInfoHeartbeat.onToolCall(target, toolName);
+            }
+        } catch (Throwable ignored) {
+            // The request path does no I/O, so a failure here is not logged.
+        }
     }
 
     /** Returns the runtime options this wrapper was configured with. */

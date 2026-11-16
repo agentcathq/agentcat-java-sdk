@@ -335,4 +335,26 @@ class StatefulCallHandlerTest {
         assertNotNull(result);
         assertTrue(result.isError(), "isError flag from original handler must be preserved");
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Server info heartbeat check
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void v10_anErrorOfTheHeartbeatCheckAtTheCallSiteKeepsTheNormalResult() {
+        AsyncToolSpecification spec = AsyncToolSpecFactory.buildSpec(tool("echo"), handlerReturning("expected_result"));
+        StatefulCallHandler handler = new StatefulCallHandler(spec, "p", "s", "v", defaultOpts());
+        ToolCallWrapper.serverInfoCheckForTesting = (target, toolName) -> {
+            throw new ExceptionInInitializerError("simulated");
+        };
+        try {
+            McpSchema.CallToolResult result =
+                    handler.apply(null, request("echo", "session_id", validSessionId())).block();
+
+            assertNotNull(result);
+            assertEquals("expected_result", ((McpSchema.TextContent) result.content().get(0)).text());
+        } finally {
+            ToolCallWrapper.serverInfoCheckForTesting = null;
+        }
+    }
 }
