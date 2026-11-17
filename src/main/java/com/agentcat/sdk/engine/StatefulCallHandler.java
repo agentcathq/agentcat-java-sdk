@@ -2,6 +2,7 @@ package com.agentcat.sdk.engine;
 
 import com.agentcat.sdk.AgentCatOptions;
 import com.agentcat.sdk.modules.handles.MintBackHandler;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoTarget;
 import io.modelcontextprotocol.server.McpAsyncServerExchange;
 import io.modelcontextprotocol.server.McpServerFeatures.AsyncToolSpecification;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
@@ -29,6 +30,7 @@ class StatefulCallHandler
     private final InjectedParamsRegistry registry;
     private final DeclaredSessionParamsRegistry declaredSessionParams;
     private final OutputInjectionRegistry outputRegistry;
+    private final ServerInfoTarget serverInfo;
 
     /** Backward-compatible constructor — uses legacy blind-strip (no registry). */
     StatefulCallHandler(AsyncToolSpecification original,
@@ -58,6 +60,16 @@ class StatefulCallHandler
                         InjectedParamsRegistry registry,
                         DeclaredSessionParamsRegistry declaredSessionParams,
                         OutputInjectionRegistry outputRegistry) {
+        this(original, projectId, serverName, serverVersion, opts, registry, declaredSessionParams, outputRegistry, null);
+    }
+
+    StatefulCallHandler(AsyncToolSpecification original,
+                        String projectId, String serverName,
+                        String serverVersion, AgentCatOptions opts,
+                        InjectedParamsRegistry registry,
+                        DeclaredSessionParamsRegistry declaredSessionParams,
+                        OutputInjectionRegistry outputRegistry,
+                        ServerInfoTarget serverInfo) {
         this.original               = original;
         this.toolName               = original.tool().name();
         this.projectId              = projectId;
@@ -67,10 +79,12 @@ class StatefulCallHandler
         this.registry               = registry;
         this.declaredSessionParams  = declaredSessionParams;
         this.outputRegistry         = outputRegistry;
+        this.serverInfo             = serverInfo;
     }
 
     @Override
     public Mono<CallToolResult> apply(McpAsyncServerExchange exchange, CallToolRequest request) {
+        ToolCallWrapper.checkServerInfo(serverInfo, toolName);
         ToolCallWrapper.PreparedCall call;
         try {
             call = ToolCallWrapper.prepare(request, exchange, toolName, serverName, serverVersion, opts, registry, declaredSessionParams);

@@ -1,6 +1,8 @@
 package com.agentcat.sdk.modules.events;
 
 import com.agentcat.api.model.PublishEventRequest;
+import com.agentcat.api.model.PublishServerInfoRequest;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoSender;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -14,19 +16,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Posts events to {@code {baseUrl}/v1/public/events/} with the JDK HTTP client,
- * so the SDK adds no HTTP or JSON library to the customer's classpath.
+ * Posts events to {@code {baseUrl}/v1/public/events/} and server info heartbeats to
+ * {@code {baseUrl}/v1/public/server-info/} with the JDK HTTP client, so the SDK adds no
+ * HTTP or JSON library to the customer's classpath.
  *
  * <p>Each request has one total time limit, response body included, so one slow
  * or stalled call cannot hold a worker for longer than {@link #REQUEST_TIMEOUT}.
  */
-public final class HttpEventSender implements EventSender {
+public final class HttpEventSender implements EventSender, ServerInfoSender {
 
     static final String EVENTS_PATH = "/v1/public/events/";
+    static final String SERVER_INFO_PATH = "/v1/public/server-info/";
     static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private final URI endpoint;
+    private final URI serverInfoEndpoint;
     private final HttpClient client;
     private final Duration requestTimeout;
 
@@ -39,6 +44,7 @@ public final class HttpEventSender implements EventSender {
         this.requestTimeout = requestTimeout;
         String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.endpoint = URI.create(base + EVENTS_PATH);
+        this.serverInfoEndpoint = URI.create(base + SERVER_INFO_PATH);
         this.client = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -47,19 +53,33 @@ public final class HttpEventSender implements EventSender {
 
     @Override
     public void send(PublishEventRequest request) throws EventSendException {
-        HttpRequest httpRequest = HttpRequest.newBuilder(endpoint)
+        HttpResponse<String> response = post(endpoint, request.toJson());
+        int status = response.statusCode();
+        if (status < 200 || status > 299) {
+            String text = response.body();
+            throw new EventSendException(status,
+                    "HTTP " + status + (text == null || text.isBlank() ? "" : ": " + text), null);
+        }
+    }
+
+    @Override
+    public int sendServerInfo(PublishServerInfoRequest request) throws EventSendException {
+        return post(serverInfoEndpoint, request.toJson()).statusCode();
+    }
+
+    private HttpResponse<String> post(URI target, String json) throws EventSendException {
+        HttpRequest httpRequest = HttpRequest.newBuilder(target)
                 .timeout(requestTimeout)
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(request.toJson(), StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                 .build();
         // One total deadline, through the end of the body: HttpRequest.timeout() alone
         // stops at the response headers, so a stalled body could hold this worker forever.
         CompletableFuture<HttpResponse<String>> pending =
                 client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        HttpResponse<String> response;
         try {
-            response = pending.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS);
+            return pending.get(requestTimeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             pending.cancel(true);
             throw new EventSendException(-1, "timed out after " + requestTimeout.toMillis() + " ms", e);
@@ -70,12 +90,6 @@ public final class HttpEventSender implements EventSender {
             pending.cancel(true);
             Thread.currentThread().interrupt();
             throw new EventSendException(-1, "interrupted", e);
-        }
-        int status = response.statusCode();
-        if (status < 200 || status > 299) {
-            String text = response.body();
-            throw new EventSendException(status,
-                    "HTTP " + status + (text == null || text.isBlank() ? "" : ": " + text), null);
         }
     }
 

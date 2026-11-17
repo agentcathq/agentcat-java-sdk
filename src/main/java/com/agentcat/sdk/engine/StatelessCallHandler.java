@@ -2,6 +2,7 @@ package com.agentcat.sdk.engine;
 
 import com.agentcat.sdk.AgentCatOptions;
 import com.agentcat.sdk.modules.handles.MintBackHandler;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoTarget;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.AsyncToolSpecification;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
@@ -41,6 +42,7 @@ class StatelessCallHandler
     private final InjectedParamsRegistry registry;
     private final DeclaredSessionParamsRegistry declaredSessionParams;
     private final OutputInjectionRegistry outputRegistry;
+    private final ServerInfoTarget serverInfo;
 
     /** Backward-compatible constructor — uses legacy blind-strip (no registry). */
     StatelessCallHandler(AsyncToolSpecification original,
@@ -70,6 +72,16 @@ class StatelessCallHandler
                          InjectedParamsRegistry registry,
                          DeclaredSessionParamsRegistry declaredSessionParams,
                          OutputInjectionRegistry outputRegistry) {
+        this(original, projectId, serverName, serverVersion, opts, registry, declaredSessionParams, outputRegistry, null);
+    }
+
+    StatelessCallHandler(AsyncToolSpecification original,
+                         String projectId, String serverName,
+                         String serverVersion, AgentCatOptions opts,
+                         InjectedParamsRegistry registry,
+                         DeclaredSessionParamsRegistry declaredSessionParams,
+                         OutputInjectionRegistry outputRegistry,
+                         ServerInfoTarget serverInfo) {
         this.original               = original;
         this.toolName               = original.tool().name();
         this.projectId              = projectId;
@@ -79,10 +91,12 @@ class StatelessCallHandler
         this.registry               = registry;
         this.declaredSessionParams  = declaredSessionParams;
         this.outputRegistry         = outputRegistry;
+        this.serverInfo             = serverInfo;
     }
 
     @Override
     public Mono<CallToolResult> apply(McpTransportContext ctx, CallToolRequest request) {
+        ToolCallWrapper.checkServerInfo(serverInfo, toolName);
         ToolCallWrapper.PreparedCall call;
         try {
             call = ToolCallWrapper.prepare(request, ctx, toolName, serverName, serverVersion, opts, registry, declaredSessionParams);

@@ -2,6 +2,8 @@ package com.agentcat.sdk.engine;
 
 import com.agentcat.sdk.AgentCatOptions;
 import com.agentcat.sdk.modules.handles.ParameterInjector;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoTarget;
+import io.modelcontextprotocol.server.McpAsyncServer;
 import io.modelcontextprotocol.server.McpServerFeatures.AsyncToolSpecification;
 import io.modelcontextprotocol.spec.McpSchema;
 
@@ -40,6 +42,17 @@ public final class StatefulToolCallWrapper extends ToolCallWrapper {
     }
 
     /**
+     * Like {@link #StatefulToolCallWrapper(String, String, String, AgentCatOptions)}, for the tools
+     * of {@code server}: their calls also check the server info heartbeat of that server.
+     */
+    public StatefulToolCallWrapper(String projectId, String serverName,
+                                   String serverVersion, AgentCatOptions opts,
+                                   McpAsyncServer server) {
+        super(projectId, serverName, serverVersion, opts,
+                ServerInfoTarget.of(projectId, serverName, serverVersion, opts, server));
+    }
+
+    /**
      * Returns a new {@link AsyncToolSpecification} that wraps {@code spec} with AgentCat
      * analytics: injects handle parameters into the tool schema and installs a
      * {@link StatefulCallHandler} as the call handler.
@@ -47,7 +60,7 @@ public final class StatefulToolCallWrapper extends ToolCallWrapper {
     public AsyncToolSpecification wrap(AsyncToolSpecification spec) {
         McpSchema.Tool injectedTool = ParameterInjector.injectParams(spec.tool(), opts, registry, declaredSessionParams);
         injectedTool = ParameterInjector.addMcpSessionToOutputSchema(injectedTool, opts, outputRegistry);
-        StatefulCallHandler handler = new StatefulCallHandler(spec, projectId, serverName, serverVersion, opts, registry, declaredSessionParams, outputRegistry);
+        StatefulCallHandler handler = new StatefulCallHandler(spec, projectId, serverName, serverVersion, opts, registry, declaredSessionParams, outputRegistry, serverInfo);
         return buildSpec(injectedTool, handler);
     }
 

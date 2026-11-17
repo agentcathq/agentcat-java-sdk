@@ -368,7 +368,7 @@ public final class AgentCat {
             return;
         }
 
-        StatefulToolCallWrapper wrapper = new StatefulToolCallWrapper(projectId, serverName, serverVersion, opts);
+        StatefulToolCallWrapper wrapper = new StatefulToolCallWrapper(projectId, serverName, serverVersion, opts, asyncServer);
 
         List<McpServerFeatures.AsyncToolSpecification> wrapped = new ArrayList<>();
         for (McpServerFeatures.AsyncToolSpecification spec : new ArrayList<>(tools)) {
@@ -412,7 +412,7 @@ public final class AgentCat {
             return;
         }
 
-        StatelessToolCallWrapper wrapper = new StatelessToolCallWrapper(projectId, serverName, serverVersion, opts);
+        StatelessToolCallWrapper wrapper = new StatelessToolCallWrapper(projectId, serverName, serverVersion, opts, asyncServer);
         List<McpStatelessServerFeatures.AsyncToolSpecification> wrapped = new ArrayList<>();
         for (McpStatelessServerFeatures.AsyncToolSpecification spec : new ArrayList<>(tools)) {
             wrapped.add(wrapper.wrap(spec));

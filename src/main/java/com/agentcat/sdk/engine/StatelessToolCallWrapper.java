@@ -2,6 +2,8 @@ package com.agentcat.sdk.engine;
 
 import com.agentcat.sdk.AgentCatOptions;
 import com.agentcat.sdk.modules.handles.ParameterInjector;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoTarget;
+import io.modelcontextprotocol.server.McpStatelessAsyncServer;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.AsyncToolSpecification;
 import io.modelcontextprotocol.spec.McpSchema;
 
@@ -40,6 +42,17 @@ public final class StatelessToolCallWrapper extends ToolCallWrapper {
     }
 
     /**
+     * Like {@link #StatelessToolCallWrapper(String, String, String, AgentCatOptions)}, for the tools
+     * of {@code server}: their calls also check the server info heartbeat of that server.
+     */
+    public StatelessToolCallWrapper(String projectId, String serverName,
+                                    String serverVersion, AgentCatOptions opts,
+                                    McpStatelessAsyncServer server) {
+        super(projectId, serverName, serverVersion, opts,
+                ServerInfoTarget.of(projectId, serverName, serverVersion, opts, server));
+    }
+
+    /**
      * Returns a new {@link AsyncToolSpecification} that wraps {@code spec} with AgentCat
      * analytics: injects handle parameters into the tool schema and installs a
      * {@link StatelessCallHandler} as the call handler.
@@ -48,7 +61,7 @@ public final class StatelessToolCallWrapper extends ToolCallWrapper {
         McpSchema.Tool injectedTool = ParameterInjector.injectParams(spec.tool(), opts, registry, declaredSessionParams);
         injectedTool = ParameterInjector.addMcpSessionToOutputSchema(injectedTool, opts, outputRegistry);
         return new AsyncToolSpecification(injectedTool,
-                new StatelessCallHandler(spec, projectId, serverName, serverVersion, opts, registry, declaredSessionParams, outputRegistry));
+                new StatelessCallHandler(spec, projectId, serverName, serverVersion, opts, registry, declaredSessionParams, outputRegistry, serverInfo));
     }
 
     /**

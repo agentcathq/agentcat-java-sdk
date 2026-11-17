@@ -1,5 +1,16 @@
 package com.agentcat.sdk;
 
+import com.agentcat.api.model.PublishServerInfoRequest;
+import com.agentcat.sdk.modules.serverinfo.ServerInfoHeartbeat;
+import io.modelcontextprotocol.common.McpTransportContext;
+import io.modelcontextprotocol.server.McpAsyncServer;
+import io.modelcontextprotocol.server.McpStatelessAsyncServer;
+import io.modelcontextprotocol.server.McpStatelessServerFeatures;
+import io.modelcontextprotocol.server.McpStatelessServerHandler;
+import io.modelcontextprotocol.server.McpStatelessSyncServer;
+import io.modelcontextprotocol.spec.McpStatelessServerTransport;
+import reactor.core.publisher.Mono;
+import java.time.Duration;
 import com.agentcat.sdk.engine.McpSdkDetector;
 import com.agentcat.sdk.engine.ReflectionUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -208,5 +219,155 @@ class AgentCatCompat018xTest {
                 .callHandler()
                 .apply(null, new McpSchema.CallToolRequest(toolName, args))
                 .block();
+    }
+
+    // ── Server info heartbeat ─────────────────────────────────────────────────
+
+    private static final String HEARTBEAT_PROJECT = "proj_" + "a".repeat(27);
+
+    @Test
+    void serverInfoHeartbeatOfASyncServer() throws Exception {
+        McpSyncServer server = AgentCat.track(McpServer.sync(transport())
+                .serverInfo(new McpSchema.Implementation("demo-server", "Demo Title", "1.2.3"))
+                .instructions("Use the demo tools.")
+                .capabilities(McpSchema.ServerCapabilities.builder().tools(false).prompts(false).build())
+                .toolCall(heartbeatTool(), (exchange, request) -> okResult())
+                .prompts(new McpServerFeatures.SyncPromptSpecification(heartbeatPrompt(),
+                        (exchange, request) -> new McpSchema.GetPromptResult("p", List.of())))
+                .build(), HEARTBEAT_PROJECT);
+        McpAsyncServer async = server.getAsyncServer();
+        List<McpSchema.Tool> listed = async.listTools().collectList().block();
+        List<McpServerFeatures.AsyncToolSpecification> specs = ReflectionUtils.readField(async, "tools");
+
+        assertHeartbeat(listed, () -> specs.stream().filter(s -> "lookup".equals(s.tool().name())).findFirst()
+                .orElseThrow().callHandler().apply(null, heartbeatCall()).block());
+    }
+
+    @Test
+    void serverInfoHeartbeatOfAnAsyncServer() throws Exception {
+        McpAsyncServer server = AgentCat.track(McpServer.async(transport())
+                .serverInfo(new McpSchema.Implementation("demo-server", "Demo Title", "1.2.3"))
+                .instructions("Use the demo tools.")
+                .capabilities(McpSchema.ServerCapabilities.builder().tools(false).prompts(false).build())
+                .toolCall(heartbeatTool(), (exchange, request) -> Mono.just(okResult()))
+                .prompts(new McpServerFeatures.AsyncPromptSpecification(heartbeatPrompt(),
+                        (exchange, request) -> Mono.just(new McpSchema.GetPromptResult("p", List.of()))))
+                .build(), HEARTBEAT_PROJECT);
+        List<McpSchema.Tool> listed = server.listTools().collectList().block();
+        List<McpServerFeatures.AsyncToolSpecification> specs = ReflectionUtils.readField(server, "tools");
+
+        assertHeartbeat(listed, () -> specs.stream().filter(s -> "lookup".equals(s.tool().name())).findFirst()
+                .orElseThrow().callHandler().apply(null, heartbeatCall()).block());
+    }
+
+    @Test
+    void serverInfoHeartbeatOfAStatelessSyncServer() throws Exception {
+        McpStatelessSyncServer server = AgentCat.track(McpServer.sync(statelessTransport())
+                .serverInfo(new McpSchema.Implementation("demo-server", "Demo Title", "1.2.3"))
+                .instructions("Use the demo tools.")
+                .capabilities(McpSchema.ServerCapabilities.builder().tools(false).prompts(false).build())
+                .toolCall(heartbeatTool(), (ctx, request) -> okResult())
+                .prompts(new McpStatelessServerFeatures.SyncPromptSpecification(heartbeatPrompt(),
+                        (ctx, request) -> new McpSchema.GetPromptResult("p", List.of())))
+                .build(), HEARTBEAT_PROJECT);
+        McpStatelessAsyncServer async = ReflectionUtils.readField(server, "asyncServer");
+        assertStatelessHeartbeat(async);
+    }
+
+    @Test
+    void serverInfoHeartbeatOfAStatelessAsyncServer() throws Exception {
+        McpStatelessAsyncServer server = AgentCat.track(McpServer.async(statelessTransport())
+                .serverInfo(new McpSchema.Implementation("demo-server", "Demo Title", "1.2.3"))
+                .instructions("Use the demo tools.")
+                .capabilities(McpSchema.ServerCapabilities.builder().tools(false).prompts(false).build())
+                .toolCall(heartbeatTool(), (ctx, request) -> Mono.just(okResult()))
+                .prompts(new McpStatelessServerFeatures.AsyncPromptSpecification(heartbeatPrompt(),
+                        (ctx, request) -> Mono.just(new McpSchema.GetPromptResult("p", List.of()))))
+                .build(), HEARTBEAT_PROJECT);
+        assertStatelessHeartbeat(server);
+    }
+
+    private static void assertStatelessHeartbeat(McpStatelessAsyncServer server) throws Exception {
+        List<McpSchema.Tool> listed = server.listTools().collectList().block();
+        List<McpStatelessServerFeatures.AsyncToolSpecification> specs = ReflectionUtils.readField(server, "tools");
+        assertHeartbeat(listed, () -> specs.stream().filter(s -> "lookup".equals(s.tool().name())).findFirst()
+                .orElseThrow().callHandler().apply(McpTransportContext.EMPTY, heartbeatCall()).block());
+    }
+
+    /**
+     * {@code listTools()} gives the tools with the injected parameters and get_more_tools, the
+     * instructions come from the library's private field, and one tool call sends them.
+     */
+    @SuppressWarnings("unchecked")
+    private static void assertHeartbeat(List<McpSchema.Tool> listed, Runnable toolCall) throws Exception {
+        assertEquals(List.of("lookup", "get_more_tools"), listed.stream().map(McpSchema.Tool::name).toList());
+        Map<String, Object> listedProps = schemaProps(toMap(listed.get(0).inputSchema()));
+        assertTrue(listedProps.containsKey("session_id"));
+        assertTrue(listedProps.containsKey("context"));
+
+        AgentCatTestExtension.ServerInfoRecorder recorder = AgentCatTestExtension.serverInfoRecorder();
+        assertTrue(ServerInfoHeartbeat.awaitIdleForTesting(Duration.ofSeconds(40)));
+        recorder.clear();
+        ServerInfoHeartbeat.resetForTesting(() -> 1_000_000L, 60_000L);
+
+        toolCall.run();
+
+        assertTrue(ServerInfoHeartbeat.awaitIdleForTesting(Duration.ofSeconds(40)));
+        List<PublishServerInfoRequest> posts = recorder.requests();
+        assertEquals(1, posts.size());
+        PublishServerInfoRequest body = posts.get(0);
+        assertEquals("demo-server", body.getServerName());
+        assertEquals("1.2.3", body.getServerVersion());
+        assertEquals("Demo Title", body.getServerTitle());
+        assertEquals("Use the demo tools.", body.getInstructions());
+        Map<String, Object> features = (Map<String, Object>) body.getFeatures();
+        assertEquals(List.of("tools", "prompts"), List.copyOf(features.keySet()));
+        List<Map<String, Object>> tools = (List<Map<String, Object>>) features.get("tools");
+        assertEquals(List.of("lookup", "get_more_tools"), tools.stream().map(t -> t.get("name")).toList());
+        Map<String, Object> props = schemaProps((Map<String, Object>) tools.get(0).get("inputSchema"));
+        assertTrue(props.containsKey("session_id"));
+        assertTrue(props.containsKey("context"));
+        assertTrue(props.containsKey("course_id"));
+        assertEquals(1, ((List<?>) features.get("prompts")).size());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> toMap(Object schema) {
+        return (Map<String, Object>) com.agentcat.sdk.modules.pipeline.JsonTree.toTree(schema);
+    }
+
+    private static McpSchema.Tool heartbeatTool() {
+        return McpSchema.Tool.builder()
+                .name("lookup")
+                .description("Looks up a course.")
+                .inputSchema(new JsonSchema("object",
+                        Map.of("course_id", Map.of("type", "string")),
+                        List.of("course_id"), null, null, null))
+                .build();
+    }
+
+    private static McpSchema.Prompt heartbeatPrompt() {
+        return new McpSchema.Prompt("greet", "Greet someone",
+                List.of(new McpSchema.PromptArgument("name", "Who to greet", true)));
+    }
+
+    private static McpSchema.CallToolRequest heartbeatCall() {
+        return new McpSchema.CallToolRequest("lookup", Map.of("course_id", "c1"));
+    }
+
+    private static McpSchema.CallToolResult okResult() {
+        return McpSchema.CallToolResult.builder().addTextContent("ok").build();
+    }
+
+    private static McpStatelessServerTransport statelessTransport() {
+        return new McpStatelessServerTransport() {
+            @Override
+            public void setMcpHandler(McpStatelessServerHandler handler) {}
+
+            @Override
+            public Mono<Void> closeGracefully() {
+                return Mono.empty();
+            }
+        };
     }
 }

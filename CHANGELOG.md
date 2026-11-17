@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- The SDK sends a server info record about once an hour: the server's name, version, title,
+  instructions and its tool, resource, resource template and prompt lists. The text redaction
+  function runs on it. The `com.agentcat:api` client is now 0.0.6.
+
 ## [1.0.0] - 2026-11-02
 
 ### Changed
