@@ -111,6 +111,21 @@ Calling `track()` per instance is cheap — the event queue is initialized once 
 
 `track()` returns the same server instance so it can be chained inline. `McpSyncServer`, `McpAsyncServer`, `McpStatelessSyncServer`, and `McpStatelessAsyncServer` are all supported.
 
+### Excluding tools from instrumentation
+
+Configure exact tool names before calling `track()` to preserve their original input and
+output schemas, arguments and responses, with no AgentCat response metadata or analytics events.
+For example, exclude an OpenAI profile tool that ChatGPT calls with `{}` during account linking:
+
+```java
+AgentCat.track(server, "proj_0000000", new AgentCatOptions()
+    .setExcludedTools(java.util.Set.of("get_my_account"))
+);
+```
+
+The default is an empty set, so all tools keep their existing instrumentation. Exclusions
+also apply to tools registered after `track()`.
+
 ### Identifying users
 
 We strongly encourage identifying every actor. If you can't resolve a real user, return a stable anonymized ID instead — for example, a hash of the auth token or API key — so that all events from the same end user still roll up to one actor in your dashboard rather than scattering into anonymous one-off sessions.
