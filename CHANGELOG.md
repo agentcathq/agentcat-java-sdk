@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- `AgentCatOptions.setExcludedTools(Set<String>)` leaves selected tools' schemas and responses
+  unchanged and skips their instrumentation and analytics, including tools registered later.
+  This supports OpenAI-specific use cases such as ChatGPT account linking, where a profile
+  tool like `get_my_account` is called with `{}` and must return its declared response schema.
+
 ## [1.1.0] - 2026-11-17
 
 ### Added

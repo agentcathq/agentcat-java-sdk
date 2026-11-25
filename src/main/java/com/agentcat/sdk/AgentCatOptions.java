@@ -4,6 +4,7 @@ import com.agentcat.sdk.model.UserIdentity;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -31,6 +32,9 @@ public final class AgentCatOptions {
      * directly with no wrapping and no parameters are injected into schemas.
      */
     private boolean enableTracing = true;
+
+    /** Exact tool names to leave uninstrumented. Configure before calling {@code track()}. */
+    private Set<String> excludedTools = Set.of();
 
     /**
      * When {@code true}, an {@code agent_id} parameter is injected into every tool's
@@ -224,6 +228,9 @@ public final class AgentCatOptions {
     /** @see #enableTracing */
     public boolean isEnableTracing() { return enableTracing; }
 
+    /** @see #setExcludedTools(Set) */
+    public Set<String> getExcludedTools() { return excludedTools; }
+
     /** @see #enableAgentTracking */
     public boolean isEnableAgentTracking() { return enableAgentTracking; }
 
@@ -259,6 +266,16 @@ public final class AgentCatOptions {
     public EventPropertiesFunction getEventProperties() { return eventProperties; }
 
     // ── Setters ───────────────────────────────────────────────────────────────
+
+    /**
+     * Excludes tools by exact name from schema injection, response metadata and analytics.
+     * The set is copied; {@code null} clears the exclusions. Defaults to an empty set.
+     * Configure before calling {@link AgentCat#track} or registering additional tools.
+     */
+    public AgentCatOptions setExcludedTools(Set<String> excludedTools) {
+        this.excludedTools = excludedTools == null ? Set.of() : Set.copyOf(excludedTools);
+        return this;
+    }
 
     /** @see #disableDiagnostics */
     public AgentCatOptions setDisableDiagnostics(boolean disableDiagnostics) { this.disableDiagnostics = disableDiagnostics; return this; }

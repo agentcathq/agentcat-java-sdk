@@ -58,6 +58,7 @@ public final class StatefulToolCallWrapper extends ToolCallWrapper {
      * {@link StatefulCallHandler} as the call handler.
      */
     public AsyncToolSpecification wrap(AsyncToolSpecification spec) {
+        if (opts.getExcludedTools().contains(spec.tool().name())) return spec;
         McpSchema.Tool injectedTool = ParameterInjector.injectParams(spec.tool(), opts, registry, declaredSessionParams);
         injectedTool = ParameterInjector.addMcpSessionToOutputSchema(injectedTool, opts, outputRegistry);
         StatefulCallHandler handler = new StatefulCallHandler(spec, projectId, serverName, serverVersion, opts, registry, declaredSessionParams, outputRegistry, serverInfo);
