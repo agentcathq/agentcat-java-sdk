@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- SDK version reporting now uses a constant generated from the SDK's Maven project version,
+  rather than a hardcoded value or the consuming application's version.
+
 ## [1.1.1] - 2026-11-25
 
 ### Added

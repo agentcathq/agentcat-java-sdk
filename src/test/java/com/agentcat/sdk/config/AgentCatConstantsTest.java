@@ -19,6 +19,11 @@ class AgentCatConstantsTest {
     // ── AgentCatConstants ─────────────────────────────────────────────────────────
 
     @Test
+    void sdkVersionMatchesMavenProject() {
+        assertEquals(System.getProperty("expectedSdkVersion"), AgentCatConstants.AGENTCAT_SDK_VERSION);
+    }
+
+    @Test
     void protocolVersion() {
         assertEquals("SEP-2567", AgentCatConstants.PROTOCOL_VERSION);
     }
