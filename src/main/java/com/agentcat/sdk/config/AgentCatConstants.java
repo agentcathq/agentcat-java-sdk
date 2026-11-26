@@ -1,14 +1,14 @@
 package com.agentcat.sdk.config;
 
 /**
- * Compile-time constants for the AgentCat SDK.
+ * Constants and build metadata for the AgentCat SDK.
  *
  * <p>All fields are {@code public static final}. There are no instances of this class.
  */
 public final class AgentCatConstants {
 
     /** Version of the AgentCat Java SDK, reported on every event as {@code agentcat_version}. */
-    public static final String AGENTCAT_SDK_VERSION = "0.1.0";
+    public static final String AGENTCAT_SDK_VERSION = SdkVersion.VERSION;
 
     /** Language tag reported on every event as {@code sdk_language}. */
     public static final String SDK_LANGUAGE = "java";

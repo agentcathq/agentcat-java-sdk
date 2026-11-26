@@ -377,6 +377,18 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>templating-maven-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>filter-sources</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- scripts/Release.java (the release steps of release.yml) compiles with the
                  tests, so ReleaseTest runs in every CI build. -->
             <plugin>
@@ -414,6 +426,30 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.3.1</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <expectedSdkVersion>${project.version}</expectedSdkVersion>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <systemPropertyVariables>
+                        <sdkJar>${project.build.directory}/${project.build.finalName}.jar</sdkJar>
+                        <expectedSdkVersion>${project.version}</expectedSdkVersion>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>
