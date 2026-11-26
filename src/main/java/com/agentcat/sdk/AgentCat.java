@@ -1,5 +1,6 @@
 package com.agentcat.sdk;
 
+import com.agentcat.sdk.engine.HttpContextCapture;
 import com.agentcat.sdk.engine.ReflectionUtils;
 import com.agentcat.sdk.engine.StatefulToolCallWrapper;
 import com.agentcat.sdk.engine.StatefulToolList;
@@ -384,6 +385,9 @@ public final class AgentCat {
         StatefulToolList newList = wrapper.newToolList(wrapped);
         writeField(asyncServer, "tools", newList);
 
+        // Every HTTP header of a call reaches the event through the transport context.
+        HttpContextCapture.install(asyncServer);
+
         writeToLog("AgentCat setup complete | project=" + projectId
                 + " | tools=" + tools.size() + (opts.isEnableReportMissing() ? "+get_more_tools" : "")
                 + " | tracing=" + opts.isEnableTracing()
@@ -425,6 +429,9 @@ public final class AgentCat {
         }
 
         writeField(asyncServer, "tools", wrapper.newToolList(wrapped));
+
+        // Every HTTP header of a call reaches the event through the transport context.
+        HttpContextCapture.install(asyncServer);
 
         writeToLog("AgentCat setup complete | project=" + projectId
                 + " | tools=" + tools.size() + (opts.isEnableReportMissing() ? "+get_more_tools" : "")

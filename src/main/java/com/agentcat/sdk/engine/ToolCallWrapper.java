@@ -425,22 +425,41 @@ public class ToolCallWrapper {
     }
 
     /**
-     * Extracts serialisable fields from {@code McpAsyncServerExchange} into the
-     * {@code extra} map. Never throws — a failure must not cost the event.
+     * Builds the {@code extra} map from data the call carries. Never throws — a failure
+     * must not cost the event.
+     *
+     * <ul>
+     *   <li>{@code mcpReq} — the MCP method and session ID, for a stateful exchange.</li>
+     *   <li>{@code http.req} — the HTTP method, URL and all headers, when
+     *       {@link HttpContextCapture} is installed on the transport. Same path as the
+     *       TypeScript SDK's v2 shape.</li>
+     * </ul>
      */
     private static Map<String, Object> buildExtra(Object exchangeOrTransport) {
-        if (!(exchangeOrTransport instanceof McpAsyncServerExchange exchange)) {
-            return Collections.emptyMap();
-        }
         try {
-            Map<String, Object> mcpReq = new HashMap<>();
-            mcpReq.put("method", "tools/call");
-
-            String sid = exchange.sessionId();
-            if (sid != null) mcpReq.put("sessionId", sid);
-
             Map<String, Object> extra = new HashMap<>();
-            extra.put("mcpReq", mcpReq);
+
+            if (exchangeOrTransport instanceof McpAsyncServerExchange exchange) {
+                Map<String, Object> mcpReq = new HashMap<>();
+                mcpReq.put("method", "tools/call");
+
+                String sid = exchange.sessionId();
+                if (sid != null) mcpReq.put("sessionId", sid);
+                extra.put("mcpReq", mcpReq);
+            }
+
+            Map<String, Object> httpRequest = HttpContextCapture.read(exchangeOrTransport);
+            if (httpRequest != null) {
+                // Mutable copies, owned by this event: a redactEvent hook can remove a
+                // header in place. The snapshot in the transport context stays read-only.
+                Map<String, Object> req = new LinkedHashMap<>(httpRequest);
+                if (httpRequest.get("headers") instanceof Map<?, ?> headers) {
+                    req.put("headers", new LinkedHashMap<>(headers));
+                }
+                Map<String, Object> http = new HashMap<>();
+                http.put("req", req);
+                extra.put("http", http);
+            }
             return extra;
         } catch (Exception e) {
             writeToLog("[EQ] buildExtra failed: " + e.getMessage());

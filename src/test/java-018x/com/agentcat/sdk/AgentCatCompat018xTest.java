@@ -11,6 +11,7 @@ import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
 import reactor.core.publisher.Mono;
 import java.time.Duration;
+import com.agentcat.sdk.engine.HttpContextCapture;
 import com.agentcat.sdk.engine.McpSdkDetector;
 import com.agentcat.sdk.engine.ReflectionUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,10 +19,14 @@ import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpSyncServer;
+import io.modelcontextprotocol.server.McpTransportContextExtractor;
+import io.modelcontextprotocol.server.transport.HttpServletStatelessServerTransport;
+import io.modelcontextprotocol.server.transport.HttpServletStreamableServerTransportProvider;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.util.HashMap;
 import java.util.List;
@@ -184,6 +189,48 @@ class AgentCatCompat018xTest {
                                 .addTextContent("ok").build())
                 .build();
     }
+
+    // ── HTTP header capture ───────────────────────────────────────────────────
+
+    /**
+     * track() wraps the context extractor of this SDK version's servlet transports, for a
+     * stateless and a stateful server, and the wrapped extractor snapshots every header.
+     */
+    @Test
+    void trackCapturesHttpHeadersOnServletTransports() throws Exception {
+        var statelessTransport = HttpServletStatelessServerTransport.builder().jsonMapper(MAPPER).build();
+        AgentCat.track(McpServer.sync(statelessTransport)
+                .serverInfo("test-server", "1.0.0")
+                .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .toolCall(heartbeatTool(), (ctx, request) -> okResult())
+                .build(), "proj_test");
+        assertCapturesHeaders(statelessTransport);
+
+        var statefulTransport = HttpServletStreamableServerTransportProvider.builder().jsonMapper(MAPPER).build();
+        AgentCat.track(McpServer.sync(statefulTransport)
+                .serverInfo("test-server", "1.0.0")
+                .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .build(), "proj_test");
+        assertCapturesHeaders(statefulTransport);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assertCapturesHeaders(Object transport) throws Exception {
+        McpTransportContextExtractor<Object> extractor = ReflectionUtils.readField(transport, "contextExtractor");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/mcp");
+        request.addHeader("User-Agent", "openai-mcp/1.0.0 (Codex)");
+        request.addHeader("Authorization", "Bearer token");
+
+        Object snapshot = extractor.extract(request).get(HttpContextCapture.CONTEXT_KEY);
+
+        assertInstanceOf(Map.class, snapshot, "track() must install the header capture on "
+                + transport.getClass().getSimpleName());
+        assertEquals(Map.of("user-agent", "openai-mcp/1.0.0 (Codex)", "authorization", "Bearer token"),
+                ((Map<String, Object>) snapshot).get("headers"));
+        assertEquals("POST", ((Map<String, Object>) snapshot).get("method"));
+    }
+
+    private static final io.modelcontextprotocol.json.McpJsonMapper MAPPER = new JacksonMcpJsonMapper(new ObjectMapper());
 
     private static StdioServerTransportProvider transport() {
         return new StdioServerTransportProvider(new JacksonMcpJsonMapper(new ObjectMapper()));

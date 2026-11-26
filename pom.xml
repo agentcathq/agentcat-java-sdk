@@ -115,6 +115,27 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring request types for HttpContextCaptureTest: the SDK reads them by reflection.
+             Same Spring generation as spring-boot-autoconfigure above. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>6.2.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+            <version>6.2.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>6.2.6</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Mocking EventsApi in EventCapture -->
         <dependency>
             <groupId>org.mockito</groupId>
