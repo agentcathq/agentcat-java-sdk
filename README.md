@@ -148,6 +148,8 @@ AgentCat.track(server, "proj_0000000", new AgentCatOptions()
 
 AgentCat redacts all data sent to its servers and encrypts at rest, but for additional security, it offers a hook to do your own redaction on all text data returned back to our servers.
 
+Before an event leaves your server, the SDK always replaces the value of each sensitive key in `parameters` and `response`, such as the `authorization`, `cookie` and `x-api-key` headers or a key with `token` or `secret` in its name, with `[redacted]`.
+
 ```java
 AgentCat.track(server, "proj_0000000", new AgentCatOptions()
     .setRedactSensitiveInformation(text ->

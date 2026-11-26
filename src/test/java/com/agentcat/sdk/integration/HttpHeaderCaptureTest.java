@@ -3,6 +3,7 @@ package com.agentcat.sdk.integration;
 import com.agentcat.api.model.PublishEventRequest;
 import com.agentcat.sdk.AgentCat;
 import com.agentcat.sdk.AgentCatOptions;
+import com.agentcat.sdk.engine.HttpContextCapture;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
@@ -97,7 +98,7 @@ class HttpHeaderCaptureTest {
 
         Map<String, Object> headers = assertHeadersPublished();
         assertEquals(sessionId, headers.get("mcp-session-id"));
-        assertEquals("Bearer secret-token", headers.get("authorization"));
+        assertEquals("[redacted]", headers.get("authorization"));
         server.closeGracefully();
     }
 
@@ -125,6 +126,37 @@ class HttpHeaderCaptureTest {
         assertEquals(SENTINEL, seenByHandler.get(), "the customer's own context must be unchanged");
         assertHeadersPublished();
         server.close();
+    }
+
+    @Test
+    void sensitiveHeadersAreMaskedAndTheHandlerKeepsThem() throws Exception {
+        AtomicReference<Object> seenByHandler = new AtomicReference<>();
+        var transport = HttpServletStreamableServerTransportProvider.builder().build();
+        McpSyncServer server = McpServer.sync(transport)
+                .serverInfo("header-capture", "1.0")
+                .validateToolInputs(false)
+                .toolCall(echoTool(), (exchange, req) -> {
+                    seenByHandler.set(exchange.transportContext().get(HttpContextCapture.CONTEXT_KEY));
+                    return ok();
+                })
+                .build();
+        AgentCat.track(server, "proj_test");
+        serve(transport);
+
+        String sessionId = post(INITIALIZE, null).headers().firstValue("mcp-session-id").orElseThrow();
+        post("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}", sessionId);
+        assertEquals(200, post(CALL_ECHO, sessionId).statusCode());
+
+        Map<String, Object> headers = assertHeadersPublished();
+        assertEquals("[redacted]", headers.get("authorization"));
+        assertEquals("[redacted]", headers.get("cookie"));
+        assertEquals("[redacted]", headers.get("x-api-key"));
+        assertEquals(sessionId, headers.get("mcp-session-id"));
+        Map<?, ?> handlerHeaders = (Map<?, ?>) ((Map<?, ?>) seenByHandler.get()).get("headers");
+        assertEquals("Bearer secret-token", handlerHeaders.get("authorization"));
+        assertEquals("sid=1; theme=dark", handlerHeaders.get("cookie"));
+        assertEquals("k-123", handlerHeaders.get("x-api-key"));
+        server.closeGracefully();
     }
 
     @Test
@@ -207,6 +239,8 @@ class HttpHeaderCaptureTest {
                 .header("User-Agent", USER_AGENT)
                 .header("X-Anthropic-Client", "ClaudeCode")
                 .header("Authorization", "Bearer secret-token")
+                .header("Cookie", "sid=1; theme=dark")
+                .header("X-Api-Key", "k-123")
                 .header(SENTINEL_HEADER, SENTINEL)
                 .POST(HttpRequest.BodyPublishers.ofString(body));
         if (sessionId != null) request.header("Mcp-Session-Id", sessionId);

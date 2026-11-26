@@ -20,7 +20,9 @@ import static com.agentcat.sdk.logging.AgentCatLogger.writeToLog;
 
 /**
  * Captures the HTTP request of every MCP call, so that the published event carries all of
- * its headers at {@code parameters.extra.http.req}, like the TypeScript SDK's v2 shape.
+ * its headers at {@code parameters.extra.http.req}, like the TypeScript SDK's v2 shape. The event
+ * queue replaces the values of sensitive headers, such as {@code authorization} and
+ * {@code cookie}, with {@code "[redacted]"} before the event leaves the server.
  *
  * <p>The MCP Java SDK never hands a tool handler the HTTP request. A handler gets a
  * {@link McpTransportContext} only, and the transport fills that context with its
