@@ -7,18 +7,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Security
-
-- The SDK now masks sensitive values in every event before the event leaves your server. It
-  tests each key in `parameters` and `response`, at any depth. When the key names a secret,
-  the SDK keeps the key and replaces the value with `[redacted]`. A key names a secret when
-  it is a known credential header (`authorization`, `cookie`, `x-api-key` and others) or has
-  a word such as `token`, `secret`, `password`, `signature` or `api-key`, in any spelling
-  (`X-Api-Key`, `HTTP_X_API_KEY`, `xApiKey`). Before, the SDK sent the HTTP headers of each
-  MCP request as received, in `parameters.extra.http.req.headers`. Tool arguments and results
-  under such key names lose their values too, for example `pageToken` and `auth_type`.
-  `null`, `true` and `false` stay. No option turns the mask off (#14).
-
 ## [1.1.2] - 2026-11-26
 
 ### Fixed
@@ -28,11 +16,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   servers sent no headers, so AgentCat could not detect the client (for example Codex or
   Claude Code) from `user-agent`. `track()` wraps the transport's `contextExtractor`; your own
   extractor still runs and its context is unchanged. This covers the MCP SDK's `HttpServlet*`
-  transports and the Spring WebMVC and WebFlux transports. `Authorization` and `Cookie` are
-  included like every other header: remove them with `setRedactEvent` if you do not want to
-  send them.
+  transports and the Spring WebMVC and WebFlux transports. The SDK masks the values of
+  credential headers such as `Authorization` and `Cookie`: see Security below.
 - SDK version reporting now uses a constant generated from the SDK's Maven project version,
   rather than a hardcoded value or the consuming application's version.
+
+### Security
+
+- The SDK now masks sensitive values in every event before the event leaves your server. It
+  tests each key in `parameters` and `response`, at any depth. When the key names a secret,
+  the SDK keeps the key and replaces the value with `[redacted]`. A key names a secret when
+  it is a known credential header (`authorization`, `cookie`, `x-api-key` and others) or has
+  a word such as `token`, `secret`, `password`, `signature` or `api-key`, in any spelling
+  (`X-Api-Key`, `HTTP_X_API_KEY`, `xApiKey`). This covers the request headers that this
+  release adds at `parameters.extra.http.req.headers`. Tool arguments and results under such
+  key names lose their values too, for example `pageToken` and `auth_type`. `null`, `true`
+  and `false` stay. No option turns the mask off (#14).
 
 ## [1.1.1] - 2026-11-25
 
