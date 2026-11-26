@@ -173,6 +173,28 @@ AgentCat.track(server, "proj_0000000", new AgentCatOptions()
 );
 ```
 
+### HTTP headers
+
+For HTTP transports, each tool call event includes the request's method, URL and all headers at `parameters.extra.http.req`. AgentCat reads `user-agent` and similar headers to detect the client (Codex, Claude Code, Cursor and others). `track()` installs this on the transport's `contextExtractor`; an extractor you set yourself still runs and your handlers see the same context as before. Inside a hook, the same data is available from the transport context under `HttpContextCapture.CONTEXT_KEY`.
+
+All headers are sent, including `Authorization` and `Cookie`. To keep a header out of AgentCat, remove it in `redactEvent`:
+
+```java
+AgentCat.track(server, "proj_0000000", new AgentCatOptions()
+    .setRedactEvent(event -> {
+        if (event.get("params") instanceof Map<?, ?> params
+                && params.get("extra") instanceof Map<?, ?> extra
+                && extra.get("http") instanceof Map<?, ?> http
+                && http.get("req") instanceof Map<?, ?> req
+                && req.get("headers") instanceof Map<?, ?> headers) {
+            headers.remove("authorization");
+            headers.remove("cookie");
+        }
+        return CompletableFuture.completedFuture(event);
+    })
+);
+```
+
 ### Internal diagnostics
 
 > [!NOTE]

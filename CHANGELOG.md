@@ -9,6 +9,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Tool call events now carry the HTTP request of the call at `parameters.extra.http.req`: the
+  method, the URL and all headers. Before, stateless servers sent an empty `extra` and stateful
+  servers sent no headers, so AgentCat could not detect the client (for example Codex or
+  Claude Code) from `user-agent`. `track()` wraps the transport's `contextExtractor`; your own
+  extractor still runs and its context is unchanged. This covers the MCP SDK's `HttpServlet*`
+  transports and the Spring WebMVC and WebFlux transports. `Authorization` and `Cookie` are
+  included like every other header: remove them with `setRedactEvent` if you do not want to
+  send them.
 - SDK version reporting now uses a constant generated from the SDK's Maven project version,
   rather than a hardcoded value or the consuming application's version.
 
