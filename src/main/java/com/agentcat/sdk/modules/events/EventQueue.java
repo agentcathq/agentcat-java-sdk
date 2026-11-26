@@ -12,6 +12,7 @@ import com.agentcat.sdk.modules.handles.ParameterInjector;
 import com.agentcat.sdk.modules.handles.SessionIdProvider;
 import com.agentcat.sdk.modules.pipeline.PayloadRedactor;
 import com.agentcat.sdk.modules.pipeline.Sanitizer;
+import com.agentcat.sdk.modules.pipeline.SensitiveKeys;
 import com.agentcat.sdk.modules.pipeline.Truncator;
 import com.agentcat.sdk.modules.serverinfo.ServerInfoSender;
 
@@ -40,6 +41,8 @@ import java.util.concurrent.TimeoutException;
  *   <li>redactSensitiveInformation — string-level redaction via customer hook
  *       (runs on original data, before sanitizer replaces binary content).</li>
  *   <li>Sanitize — remove binary content, large base64 blobs.</li>
+ *   <li>Mask — replace the values of sensitive keys ({@code authorization}, tokens,
+ *       secrets) in parameters and response with {@code "[redacted]"}.</li>
  *   <li>Truncate — cap strings at 32 KB, depth at 10, breadth at 100.</li>
  *   <li>Send — HTTP POST to AgentCat API, up to 3 retries with exponential
  *       backoff (1 s / 2 s / 4 s).</li>
@@ -272,6 +275,8 @@ public final class EventQueue {
             if (pair == null) return; // dropped: redactSensitiveInformation hook threw
 
             pair = sanitize(pair);
+            pair = new PayloadPair(mask(ev, "parameters", pair.params()),
+                                   mask(ev, "response",   pair.response()));
             pair = truncate(pair);
 
             sendWithRetry(buildRequest(ev, pair.params(), pair.response()), ev.getToolName());
@@ -332,6 +337,21 @@ public final class EventQueue {
         } catch (Exception e) {
             writeToLog("redactSensitiveInformation hook failed or timed out — dropping event tool=" + ev.getToolName()
                     + " error=" + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Masks the values of sensitive keys in one field. When the mask fails, the field becomes
+     * {@code null} and the event goes out without it, so an unmasked field never leaves the server.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> mask(QueuedEvent ev, String field, Map<String, Object> value) {
+        try {
+            return (Map<String, Object>) SensitiveKeys.maskSensitiveKeys(value);
+        } catch (Throwable t) {
+            writeToLog("Sensitive key mask failed on " + field + " [" + ev.getToolName()
+                    + "], sending the event without it: " + t);
             return null;
         }
     }

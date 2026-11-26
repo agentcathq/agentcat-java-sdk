@@ -432,7 +432,8 @@ public class ToolCallWrapper {
      *   <li>{@code mcpReq} — the MCP method and session ID, for a stateful exchange.</li>
      *   <li>{@code http.req} — the HTTP method, URL and all headers, when
      *       {@link HttpContextCapture} is installed on the transport. Same path as the
-     *       TypeScript SDK's v2 shape.</li>
+     *       TypeScript SDK's v2 shape. The event queue masks the values of sensitive
+     *       headers before the event is sent.</li>
      * </ul>
      */
     private static Map<String, Object> buildExtra(Object exchangeOrTransport) {
