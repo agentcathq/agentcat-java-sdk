@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-26
+
 ### Fixed
 
 - Tool call events now carry the HTTP request of the call at `parameters.extra.http.req`: the
@@ -62,7 +64,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Event delivery with the JDK HTTP client. The SDK adds no HTTP or JSON library to your
   classpath: its only required dependency is `com.agentcat:api`, which has no dependencies.
 
-[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/agentcathq/agentcat-java-sdk/compare/v0.1.0...v1.0.0
