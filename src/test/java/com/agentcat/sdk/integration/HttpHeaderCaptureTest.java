@@ -129,7 +129,7 @@ class HttpHeaderCaptureTest {
 
     @Test
     void redactEventCanRemoveAHeader() throws Exception {
-        // The README's recipe, verbatim: the hook gets a map it can change.
+        // The hook gets a map it can change, so it can remove a header in place.
         AgentCatOptions opts = new AgentCatOptions()
                 .setRedactEvent(event -> {
                     if (event.get("params") instanceof Map<?, ?> params
