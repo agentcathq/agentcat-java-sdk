@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Security
+
+- Update the Spring WebMVC, WebFlux and test dependencies to 7.0.9 to address security
+  vulnerabilities without a Spring 6.2 patch. Align the optional Spring Boot
+  auto-configuration dependency with Spring Framework 7 by updating it to 4.0.8.
+
 ## [1.1.2] - 2026-11-26
 
 ### Fixed
