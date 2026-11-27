@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-11-27
+
 ### Security
 
 - Update the Spring WebMVC, WebFlux and test dependencies to 7.0.9 to address security
@@ -81,7 +83,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Event delivery with the JDK HTTP client. The SDK adds no HTTP or JSON library to your
   classpath: its only required dependency is `com.agentcat:api`, which has no dependencies.
 
-[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/agentcathq/agentcat-java-sdk/compare/v1.0.0...v1.1.0
